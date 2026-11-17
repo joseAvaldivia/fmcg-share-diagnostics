@@ -1,0 +1,81 @@
+# Parámetros del mundo sintético y de los análisis. Cambiar algo aquí hace que el pipeline
+# regenere solo los pasos afectados.
+
+semilla: 2024
+meses: {inicio: "2023-01", fin: "2025-12"}
+
+mercados:
+  foco: Metro Norte        # mercado diagnosticado (venta por cliente, ejecución, mapa)
+  control: Metro Sur       # mismo choque de precio, otra competencia
+
+fabricantes: [Compañía A, Rival B, Rival C, Otros]
+propio: Compañía A
+rival_ancla: Rival B
+
+clases:                    # precio por litro de partida (UM) y peso en la categoría
+  Personal OW: {precio_litro: 7.0, peso: 0.25, lista: ow}
+  Multiserve OW: {precio_litro: 4.2, peso: 0.40, lista: ow}
+  Multiserve retornable: {precio_litro: 3.4, peso: 0.25, lista: retornable}
+  Sabores OW: {precio_litro: 4.0, peso: 0.10, lista: ow}
+
+# Rondas de ajuste de precio de lista de la Compañía A. Para cada rival: [rezago en meses, alza]
+# o null si no sigue.
+rondas:
+  - {mes: "2023-07", ow: 0.04, retornable: 0.04, Rival B: [1, 0.04], Rival C: [1, 0.04]}
+  - {mes: "2024-03", ow: 0.06, retornable: 0.00, Rival B: null, Rival C: [2, 0.05]}
+  - {mes: "2024-09", ow: 0.08, retornable: 0.06, Rival B: [3, 0.05], Rival C: [1, 0.08]}
+  - {mes: "2025-02", ow: 0.07, retornable: 0.00, Rival B: null, Rival C: [1, 0.06]}
+  - {mes: "2025-08", ow: 0.06, retornable: 0.05, Rival B: [1, 0.06], Rival C: [1, 0.06]}
+
+disrupciones:              # meses con problemas de abastecimiento (caen distribución y volumen)
+  Metro Norte: ["2024-05", "2024-06", "2025-05"]
+mes_placebo: "2023-11"     # feriado que golpea solo al no retornable (sin cambio de precio)
+
+macro:                     # índices mensuales sintéticos (base 100 en el primer mes)
+  inflacion_mensual_antes: 0.003
+  inflacion_mensual_despues: 0.012
+  tipo_cambio_salto: "2024-06"
+  tipo_cambio_final: 160
+
+verdad:                    # lo que los análisis deberían recuperar
+  beta_precio: -2.0        # utilidad logit por ln(precio relativo)
+  beta_distribucion: 1.5
+  elasticidad_ow_cliente: -1.8
+  elasticidad_retornable_cliente: -1.2
+  traspaso_trio: 0.35      # sensibilidad del retornable a la brecha OW/retornable (clientes con trío)
+  traspaso_resto: 0.05
+  escala_traspaso: 6.0
+
+clientes:
+  n: 4000
+  distritos: 6
+  centro: [-26.5, -21.5]   # ciudad ficticia en mar abierto
+  radio_anillos: 7         # H3 resolución 7
+
+trio:
+  nombre: Trío T1
+  ancla: Rival B Multiserve 3 L
+  ancla_precio: 9.0
+  skus: [Retornable 2.5 L, Sabores OW 2.5 L, Vidrio 1.5 L]
+  minimo_habitual: 2       # SKU del trío que debe comprar un cliente para estar "con trío"
+  umbral_habitual: 0.33    # comprado en al menos 1/3 de los meses con compra
+
+skus_cliente:              # SKU de la venta interna: lista de precios, litros, precio sugerido
+  OW 2 L: {lista: ow, litros: 2.0, precio: 8.0}
+  OW 3 L: {lista: ow, litros: 3.0, precio: 11.0}
+  Retornable 2 L: {lista: retornable, litros: 2.0, precio: 6.5}
+  Retornable 2.5 L: {lista: retornable, litros: 2.5, precio: 8.0}
+  Sabores OW 2.5 L: {lista: ow, litros: 2.5, precio: 9.0}
+  Vidrio 1.5 L: {lista: retornable, litros: 1.5, precio: 5.5}
+
+experimento:
+  meses_estado: [-9, -4]   # ventana para medir si el cliente tiene el trío
+  meses_pre: [-3, -1]
+  meses_post: [0, 2]
+  bootstrap: 300
+  confianza: 0.90
+  piloto_por_brazo: 700
+
+semaforo:
+  min_clientes: 15
+  umbral_efecto_alza: -0.03
